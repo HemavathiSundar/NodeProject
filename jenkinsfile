@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = 'your-image-name'
+        DOCKER_REGISTRY = 'your-jfrog-registry-url'
+        DOCKER_REPO = 'your-repo'
+        DOCKER_TAG = 'latest'
+        JFROG_USERNAME = credentials('your-jfrog-username')
+        JFROG_PASSWORD = credentials('your-jfrog-password')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your source code from version control
+                git 'https://github.com/your/repo.git'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                // Build Docker image
+                script {
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f Dockerfile .")
+                }
+            }
+        }
+        
+        stage('Push Docker Image to JFrog') {
+            steps {
+                // Authenticate with JFrog Artifactory
+                withCredentials([usernamePassword(credentialsId: 'your-jfrog-credentials', usernameVariable: 'JFROG_USERNAME', passwordVariable: 'JFROG_PASSWORD')]) {
+                    sh "docker login -u ${JFROG_USERNAME} -p ${JFROG_PASSWORD} ${DOCKER_REGISTRY}"
+                }
+                
+                // Tag Docker image with JFrog repository path
+                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_REGISTRY}/${DOCKER_REPO}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+                
+                // Push Docker image to JFrog Artifactory
+                sh "docker push ${DOCKER_REGISTRY}/${DOCKER_REPO}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+            }
+        }
+    }
+}
