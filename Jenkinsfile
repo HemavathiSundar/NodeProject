@@ -4,6 +4,9 @@ pipeline {
     environment {
         // Define Docker image tag
         DOCKER_IMAGE_TAG = 'hema1001/nodeimg:latest'
+        // Define DockerHub username and password
+        DOCKERHUB_USERNAME = 'hema1001'
+        DOCKERHUB_PASSWORD = 'Hemasundar123@'
     }
     
     stages {
@@ -31,9 +34,7 @@ pipeline {
             steps {
                 script {
                     // Docker login to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'dockerhubsecret', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-                        sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
-                    }
+                    sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
                     
                     // Docker push command
                     def dockerPushCommand = "docker push ${DOCKER_IMAGE_TAG}"
