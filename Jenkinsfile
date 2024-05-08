@@ -2,13 +2,11 @@ pipeline {
     agent any
     
     environment {
-        // Define JFrog Artifactory URL
-        ARTIFACTORY_URL = 'https://hemadevops.jfrog.io/artifactory/api/docker/hemarepokey'
         // Define Docker image tag
-        DOCKER_IMAGE_TAG = 'v1'
-        // Define JFrog API token
-        //JFROG_API_TOKEN = credentials('jfrog-api-token'
-        JFROG_API_TOKEN = ${{ secrets.JFROG_API_TOKEN }}
+        DOCKER_IMAGE_TAG = 'hema1001/nodeimage:latest'
+        // Define DockerHub credentials
+        DOCKERHUB_USERNAME = credentials('dockerhub-username')
+        DOCKERHUB_PASSWORD = credentials('dockerhub-password')
     }
     
     stages {
@@ -18,7 +16,7 @@ pipeline {
                     // Define Dockerfile location
                     def dockerfile = 'Dockerfile'
                     // Docker build command
-                    def dockerBuildCommand = "docker build -t ${DOCKER_IMAGE_TAG} -f ${Dockerfile} ."
+                    def dockerBuildCommand = "docker build -t ${DOCKER_IMAGE_TAG} -f ${dockerfile} ."
                     
                     // Execute Docker build command
                     sh script: dockerBuildCommand, returnStatus: true
@@ -32,18 +30,15 @@ pipeline {
             }
         }
         
-        stage('Push Docker Image to JFrog Artifactory') {
+        stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Configure JFrog CLI
-                    sh 'jfrog rt config --url ${ARTIFACTORY_URL} --apikey ${JFROG_API_TOKEN} --interactive=false'
+                    // Docker login to Docker Hub
+                    sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
                     
-                    // Tag Docker image
-                    def dockerTagCommand = "docker tag ${DOCKER_IMAGE_TAG} ${ARTIFACTORY_URL}/${DOCKER_IMAGE_TAG}"
-                    sh script: dockerTagCommand
-                    
-                    // Push Docker image to Artifactory
-                    def dockerPushCommand = "jfrog rt docker-push ${DOCKER_IMAGE_TAG} ${ARTIFACTORY_URL}"
+                    // Docker push command
+                    def dockerPushCommand = "docker push ${DOCKER_IMAGE_TAG}"
+                    // Execute Docker push command
                     sh script: dockerPushCommand
                 }
             }
