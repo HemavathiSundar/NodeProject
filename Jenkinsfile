@@ -3,10 +3,10 @@ pipeline {
     
     environment {
         // Define Docker image tag
-        DOCKER_IMAGE_TAG = 'hema1001/nodeimage:latest'
+        DOCKER_IMAGE_TAG = 'hema1001/nodeimg:latest'
         // Define DockerHub credentials
-        DOCKERHUB_USERNAME = credentials('dockerhub-username')
-        DOCKERHUB_PASSWORD = credentials('dockerhub-password')
+        DOCKERHUB_USERNAME = 'hema1001'
+        DOCKERHUB_PASSWORD = 'Hemasundar123@'
     }
     
     stages {
