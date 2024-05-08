@@ -1,47 +1,47 @@
 pipeline {
     agent any
-    
     environment {
-        // Define Docker image tag
-        DOCKER_IMAGE_TAG = 'hema1001/nodeimg:latest'
-        // Define DockerHub username and password
-        DOCKERHUB_USERNAME = 'hema1001'
-        DOCKERHUB_PASSWORD = 'Hemasundar123@'
+        AWS_ACCOUNT_ID="211125359833"
+        AWS_DEFAULT_REGION="us-east-1"
+        IMAGE_REPO_NAME="nodeprojectecr"
+        IMAGE_TAG="v1"
+        REPOSITORY_URI = "public.ecr.aws/v0y1e7x9/nodeprojectecr"
     }
-    
+   
     stages {
-        stage('Build Docker Image') {
+        
+         stage('Logging into AWS ECR') {
             steps {
                 script {
-                    // Define Dockerfile location
-                    def dockerfile = 'Dockerfile'
-                    // Docker build command
-                    def dockerBuildCommand = "docker build -t ${DOCKER_IMAGE_TAG} -f ${dockerfile} ."
-                    
-                    // Execute Docker build command
-                    sh script: dockerBuildCommand, returnStatus: true
-                    // Check if the Docker build was successful
-                    if (currentBuild.result == 'SUCCESS') {
-                        echo 'Docker build successful'
-                    } else {
-                        error 'Docker build failed'
-                    }
+                sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
                 }
+                 
             }
         }
         
-        stage('Push Docker Image to Docker Hub') {
+        stage('Cloning Git') {
             steps {
-                script {
-                    // Docker login to Docker Hub
-                    sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
-                    
-                    // Docker push command
-                    def dockerPushCommand = "docker push ${DOCKER_IMAGE_TAG}"
-                    // Execute Docker push command
-                    sh script: dockerPushCommand
-                }
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'https://github.com/HemavathiSundar/NodeProject.git']]])     
             }
         }
+  
+    // Building Docker images
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+        }
+      }
+    }
+   
+    // Uploading Docker images into AWS ECR
+    stage('Pushing to ECR') {
+     steps{  
+         script {
+                sh """docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
+                sh """docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"""
+         }
+        }
+      }
     }
 }
